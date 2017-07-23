@@ -26,15 +26,30 @@ def read_data(data_file):
 def read_data_with_head(data_file):
     df = pd.read_csv(data_file, header=0)
     columns = df.columns.tolist()
+    max_abs_scaler = preprocessing.MinMaxScaler().fit(df)
+    df_array = max_abs_scaler.transform(df)
+    df = pd.DataFrame(df_array, columns=columns)
+    feat_mat = df.describe()                #各列特征的一个基本简况
+    print feat_mat
+    #return 0
+
+    scaler = preprocessing.StandardScaler().fit(df)
+    df_array = scaler.transform(df)
+    df = pd.DataFrame(df_array, columns=columns)
     # Finding out basic statistical information on your dataset.
     pd.options.display.float_format = '{:,.3f}'.format # Limit output to 3 decimal places.
+    
+    if not os.path.exists('feature_images'):
+        os.makedirs('feature_images')
 
     feat_mat = df.describe()                #各列特征的一个基本简况
+    print feat_mat
+    return 0
     #feat_mat.T.to_excel("feature_images/feature_material.xlsx")
 
     corrmat = df.corr(method = 'spearman')  #各特征间的一个相关系数
     corrmat.to_excel("feature_images/corr_map.xlsx")
-    return 0
+    #return 0
     f, ax = plt.subplots(figsize=(12, 12))
     sns.heatmap(corrmat, vmax=1., square=True)
     plt.xticks(rotation='vertical')
