@@ -42,6 +42,25 @@ def standard(data):
     data = standarder.transform(data)
     return data
 
+def show_one_feature(df, feat):
+    feat_df = df[feat].value_counts()
+    plt.figure(figsize=(8, 4))
+    sns.barplot(feat_df.index, feat_df.values, alpha=0.8)
+    plt.ylabel('Number of Occurrences', fontsize=12)
+    plt.xlabel(feat, fontsize=12)
+    plt.show()
+    
+def hot_coding(df, feat):
+    feat_dummies = pd.get_dummies(df[feat])
+    columns = feat_dummies.columns.tolist()
+    for i in range(0, len(columns)):
+        columns[i] = feat + "_" + columns[i]
+    feat_dummies.columns = columns
+    df = df.join(feat_dummies)
+    df.drop([feat], axis=1, inplace=True)
+    return df
+
+
 #移除低variance的特征
 def removeFeatByVar(X, threshold):
     #columns = X.columns.tolist()

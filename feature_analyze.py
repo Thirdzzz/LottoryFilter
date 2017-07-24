@@ -22,3 +22,6 @@ columns = train_df.columns.tolist()
 print columns
 print train_df.info()
 #data.display_data('train.txt', True)
+#data.show_one_feature(train_df, 'html_level')
+train_df = data.hot_coding(train_df, 'html_level')
+print train_df.head()
