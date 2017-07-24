@@ -3,7 +3,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn import preprocessing
 import sys  
 import os  
-
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
+import data
 import numpy as np  
   
 reload(sys)  
@@ -11,10 +13,10 @@ sys.setdefaultencoding('utf8')
 
 
 #Load boston housing dataset as an example
-data = np.loadtxt("train.txt", delimiter=",")
-attr_num = len(data[0]) - 1
-X = data[:, 0:attr_num]
-Y = data[:, -1]
+datas = np.loadtxt("train.txt", delimiter=",")
+attr_num = len(datas[0]) - 1
+X = datas[:, 0:attr_num]
+Y = datas[:, -1]
 with open("feature_names.txt", 'r') as f:
     feature_labels = f.readlines()
 
@@ -38,5 +40,8 @@ scores = sorted(scores, reverse=True)
 for score in scores:
     print score
 
+X = data.removeFeatByVar(X, 0.8)
+print X.shape
+X = data.selectBestFeat(X, Y, X.shape[1])
 
     

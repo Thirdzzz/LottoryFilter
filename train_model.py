@@ -21,6 +21,7 @@ class TrainModel(object):
     def naive_bayes_classifier(self, train_x, train_y):  
         from sklearn.naive_bayes import MultinomialNB  
         model = MultinomialNB(alpha=0.01)  
+        #train_x = data.scale01(train_x)
         model.fit(train_x, train_y)  
         return model  
       
@@ -29,6 +30,7 @@ class TrainModel(object):
     def knn_classifier(self, train_x, train_y):  
         from sklearn.neighbors import KNeighborsClassifier  
         model = KNeighborsClassifier()  
+        #train_x = data.standard(train_x)
         model.fit(train_x, train_y) 
         print(model)
         return model  
@@ -38,6 +40,7 @@ class TrainModel(object):
     def logistic_regression_classifier(self, train_x, train_y):  
         from sklearn.linear_model import LogisticRegression  
         model = LogisticRegression(penalty='l2')  
+        #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
         return model  
       
@@ -46,6 +49,7 @@ class TrainModel(object):
     def random_forest_classifier(self, train_x, train_y):  
         from sklearn.ensemble import RandomForestClassifier  
         model = RandomForestClassifier(n_estimators=8)  
+        #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
         return model  
       
@@ -54,6 +58,7 @@ class TrainModel(object):
     def decision_tree_classifier(self, train_x, train_y):  
         from sklearn import tree  
         model = tree.DecisionTreeClassifier()  
+        #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
         return model  
       
@@ -61,7 +66,8 @@ class TrainModel(object):
     # GBDT(Gradient Boosting Decision Tree) Classifier  
     def gradient_boosting_classifier(self, train_x, train_y):  
         from sklearn.ensemble import GradientBoostingClassifier  
-        model = GradientBoostingClassifier(n_estimators=200)  
+        model = GradientBoostingClassifier(n_estimators=200) 
+        #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
         return model  
       
@@ -70,6 +76,7 @@ class TrainModel(object):
     def svm_classifier(self, train_x, train_y):  
         from sklearn.svm import SVC  
         model = SVC(kernel='rbf', probability=True)  
+        #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
         return model  
       
@@ -84,7 +91,8 @@ class TrainModel(object):
         best_parameters = grid_search.best_estimator_.get_params()  
         for para, val in best_parameters.items():  
             print para, val  
-        model = SVC(kernel='rbf', C=best_parameters['C'], gamma=best_parameters['gamma'], probability=True)  
+        model = SVC(kernel='rbf', C=best_parameters['C'], gamma=best_parameters['gamma'], probability=True)
+        #train_x = data.standard(train_x) 
         model.fit(train_x, train_y)  
         return model  
 
