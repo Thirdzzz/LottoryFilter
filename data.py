@@ -42,13 +42,41 @@ def standard(data):
     data = standarder.transform(data)
     return data
 
-def show_one_feature(df, feat):
+def show_one_feature_count(df, feat, dir):
     feat_df = df[feat].value_counts()
     plt.figure(figsize=(8, 4))
     sns.barplot(feat_df.index, feat_df.values, alpha=0.8)
     plt.ylabel('Number of Occurrences', fontsize=12)
     plt.xlabel(feat, fontsize=12)
-    plt.show()
+    #plt.show()
+    draw_pic(plt, dir, feat)
+    plt.clf()
+    
+def show_one_feature_class(df, feat, label, dir):
+    plt.figure(figsize=(8, 4))
+    ax = plt.axes()
+    data = df.groupby([feat])[[label]].count()
+    sns.barplot(x=data.index, y=data[label], alpha=0.8, color='violet', ax=ax)
+    data = df.groupby([feat])[[label]].sum()
+    sns.barplot(x=data.index, y=data[label], alpha=0.8, color='black', ax=ax)    
+    draw_pic(plt, dir, feat)
+    plt.clf()
+
+def show_features_corr(df):
+    plt.figure(figsize=(25, 25))
+    corr = df.corr()
+    f, ax = plt.subplots(figsize=(25, 16))
+    '''
+    plt.yticks(fontsize=18, rotation='horizontal')
+    plt.xticks(fontsize=18, rotation='vertical')
+    sns.heatmap(corr, cmap='inferno', linewidths=0.1,vmax=1.0, square=True, annot=True)
+    '''
+    plt.xticks(rotation=1)
+    plt.yticks(rotation='horizontal') 
+    sns.heatmap(corr, vmax=1., square=True) 
+
+    draw_pic(plt, 'features_corr', 'features_corr_heat_map')
+    plt.clf()
     
 def hot_coding(df, feat):
     feat_dummies = pd.get_dummies(df[feat])
@@ -60,6 +88,10 @@ def hot_coding(df, feat):
     df.drop([feat], axis=1, inplace=True)
     return df
 
+def draw_pic(plt, dir, file_name):
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    plt.savefig(dir + "/" + file_name + ".png")
 
 #移除低variance的特征
 def removeFeatByVar(X, threshold):
