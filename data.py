@@ -141,10 +141,12 @@ def selectBestFeat(X, Y, test_x, k):
     rf.fit(X, Y)
     draw_feat_importance(X, rf)
     model = SelectFromModel(rf, prefit=True)
-    print model.get_support(indices=True)
-    X = model.transform(X)
+    select_indices = model.get_support(indices=True)
+    X = X.iloc[:, select_indices]
+    #X = model.transform(X)
     X = pd.DataFrame(X)
-    test_x = model.transform(test_x)
+    test_x = test_x.iloc[:, select_indices]
+    #test_x = model.transform(test_x)
     test_x = pd.DataFrame(test_x)
     '''
     clf = Pipeline([

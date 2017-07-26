@@ -84,6 +84,8 @@ if __name__ == '__main__':
     train_x = all_x.iloc[0:train_num, :]
     test_x = all_x.iloc[train_num:all_num, :]
     train_x, test_x = data.selectBestFeat(train_x, train_y, test_x, 100)
+    print train_x.columns
+    print test_x.columns
 
 
     
