@@ -30,11 +30,13 @@ def read_data(data_file):
     #X = preprocessing.scale(X)
     #Y = preprocessing.scale(Y)
     #print X, Y
-    return X, Y  
+    return X, Y     
 
 def scale01(data):
+    columns = data.columns.tolist()
     max_abs_scaler = preprocessing.MinMaxScaler().fit(data)
     data = max_abs_scaler.transform(data)
+    data = pd.DataFrame(data, columns=columns)
     return data
 
 def standard(data):
@@ -63,7 +65,7 @@ def show_one_feature_class(df, feat, label, dir):
     plt.clf()
 
 def show_features_corr(df):
-    plt.figure(figsize=(25, 25))
+    #plt.figure(figsize=(25, 25))
     corr = df.corr()
     f, ax = plt.subplots(figsize=(25, 16))
     '''
@@ -71,12 +73,35 @@ def show_features_corr(df):
     plt.xticks(fontsize=18, rotation='vertical')
     sns.heatmap(corr, cmap='inferno', linewidths=0.1,vmax=1.0, square=True, annot=True)
     '''
-    plt.xticks(rotation=1)
-    plt.yticks(rotation='horizontal') 
     sns.heatmap(corr, vmax=1., square=True) 
+    plt.xticks(rotation='vertical')
+    plt.yticks(rotation='horizontal') 
+    #plt.show()
 
     draw_pic(plt, 'features_corr', 'features_corr_heat_map')
     plt.clf()
+    
+def add_features(df):
+    df['host_sub_level'] = df['host_level'] - df['domain_level']
+    levels = ['host', 'path', 'file', 'domain']
+    parts = ['num', 'char', 'flag', 'diff']
+    flags = ['_', '-', '#', '@', 'qm', 'pm', 'comma', 'dot']
+    df['url_len'] = df['host_len'] +df['path_len'] + df['file_len']
+    for part in parts:
+        df['url_' + part] = 0
+        for level in levels:
+            df['url_' + part] = df['url_' + part] + df[level + "_" + part]
+        df['url_' + part + "_ratio"] = df['url_' + part] / (df['url_len'] + 1)
+    for level in levels:
+        for part in parts:
+            df[level + "_" + part + "_ratio"] = df[level + "_" + part] / (df[level + "_len"] + 1)
+    df['domain_suf'] = df['domain_suf'].apply(lambda x : 'else' if(x not in ['com', 'cn', 'cc', 'net']) else x)
+    df = hot_coding(df, 'domain_suf')
+    df['url_suf'] = df['url_suf'].apply(lambda x : 'else' if(x not in ['html', 'NAN', 'php', 'asp', 'shtml', 'htm']) else x)
+    df = hot_coding(df, 'url_suf') 
+    df = hot_coding(df, 'html_level')   
+    return df
+    
     
 def hot_coding(df, feat):
     feat_dummies = pd.get_dummies(df[feat])
@@ -84,7 +109,7 @@ def hot_coding(df, feat):
     for i in range(0, len(columns)):
         columns[i] = feat + "_" + columns[i]
     feat_dummies.columns = columns
-    df = df.join(feat_dummies)
+    df = pd.concat([df, feat_dummies], axis = 1)
     df.drop([feat], axis=1, inplace=True)
     return df
 
@@ -93,20 +118,34 @@ def draw_pic(plt, dir, file_name):
         os.makedirs(dir)
     plt.savefig(dir + "/" + file_name + ".png")
 
-#移除低variance的特征
-def removeFeatByVar(X, threshold):
-    #columns = X.columns.tolist()
-    sel = VarianceThreshold(threshold=(threshold * (1 - threshold)))
-    X_array = sel.fit_transform(X)
-    return X_array
-    #X = pd.DataFrame(X_array, columns=columns)
+#移除低variance的特征, 默认去除0方差，即一列全为同一值的特征
+def removeFeatByVar(X): 
+    columns = X.columns.tolist()
+    sel = VarianceThreshold()
+    sel.fit(X)
+    select_indices = sel.get_support(indices=True)
+    print len(select_indices)
+    X_select = X.iloc[:, select_indices]
+    #print X_select
+    return X_select
+    #X_array = sel.transform(X)
+    #X = pd.DataFrame(X_array)
     #return X
 
-def selectBestFeat(X, Y, k):
-    X_new = SelectKBest(chi2, k=k).fit_transform(X, Y)
-    rf = RandomForestRegressor(n_estimators=1000, max_depth=20)
-    rf.fit(X_new, Y)
-    X_res = rf.transform(X_new)
+def selectBestFeat(X, Y, test_x, k):
+    #X = SelectKBest(chi2, k=k).fit_transform(X, Y)
+    #rf = RandomForestRegressor(n_estimators=1000, max_depth=20)
+    #rf.fit(X, Y)
+    #X = rf.transform(X)
+    rf = RandomForestClassifier(n_estimators=1000, max_depth=10)
+    rf.fit(X, Y)
+    draw_feat_importance(X, rf)
+    model = SelectFromModel(rf, prefit=True)
+    print model.get_support(indices=True)
+    X = model.transform(X)
+    X = pd.DataFrame(X)
+    test_x = model.transform(test_x)
+    test_x = pd.DataFrame(test_x)
     '''
     clf = Pipeline([
       ('feature_selection', SelectFromModel(LinearSVC(loss='l2', penalty='l1', dual=False))),
@@ -115,8 +154,19 @@ def selectBestFeat(X, Y, k):
     clf.fit(X_new, Y)
     X_res = clf.transform(X_new)
     '''
-    print X_res.shape
-    return X_res
+    print X.shape, test_x.shape
+    return X, test_x
+
+def draw_feat_importance(X, model):
+    plt.figure(figsize=(20,25))
+    plt.barh(np.arange(X.columns.shape[0]), model.feature_importances_, 0.5)
+    plt.yticks(np.arange(X.columns.shape[0]), X.columns)
+    plt.grid()
+    plt.xticks(np.arange(0, max(model.feature_importances_), 0.01))
+    #plt.show()
+    draw_pic(plt, 'feature_importance', 'importance')
+    plt.clf()
+    
 
 
 def display_data(data_file, draw_pic=False):

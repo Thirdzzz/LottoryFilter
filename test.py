@@ -24,6 +24,9 @@ reload(sys)
 sys.setdefaultencoding('utf8')  
   
 if __name__ == '__main__':
+    raw_url_file = "anchor_url"
+    predict_res_file = "predict_lottory"
+    '''
     train_file = "train.txt"
     #test_file = "cc_100000_feat"
     #raw_url_file = "cc_100000"
@@ -61,6 +64,28 @@ if __name__ == '__main__':
     train_x = sel.transform(train_x)
     test_x = sel.transform(test_x)    
     print train_x.shape
+    '''
+    train_df = pd.read_csv('train.txt', header=0)
+    test_df = pd.read_csv('anchor_url_feat', header=0)
+    train_num = train_df.shape[0]
+
+    train_y = train_df['class']
+    train_x = train_df.drop(['class'], axis=1)
+    test_y = test_df['class']
+    test_x = test_df.drop(['class'], axis=1)
+    all_x = pd.concat([train_x, test_x])
+    print all_x.shape
+    all_num = all_x.shape[0]
+
+    all_x = data.add_features(all_x)
+    all_x = data.scale01(all_x)
+    all_x = data.removeFeatByVar(all_x)
+    print all_x.shape
+    train_x = all_x.iloc[0:train_num, :]
+    test_x = all_x.iloc[train_num:all_num, :]
+    train_x, test_x = data.selectBestFeat(train_x, train_y, test_x, 100)
+
+
     
 
     data_nums, col_nums = test_x.shape
