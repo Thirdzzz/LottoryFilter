@@ -3,29 +3,32 @@
   
 import sys  
 import os  
-import time  
+import time
+  
+import pickle 
 import numpy as np  
+import pandas as pd
+from collections import Counter
+import xgboost as xgb
+
 from sklearn import preprocessing
 from sklearn import metrics
-import pickle 
+from sklearn.feature_selection import VarianceThreshold, SelectKBest, f_classif, SelectFromModel
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
+from sklearn.svm import SVC
+from sklearn.cross_validation import KFold
+
+import conf
 import data
+import feature_analyze
 import train_model
 import test_model
-import pandas as pd
-from sklearn.feature_selection import VarianceThreshold
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import f_classif
-from sklearn.feature_selection import SelectFromModel
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import RandomForestRegressor
 
   
 reload(sys)  
 sys.setdefaultencoding('utf8')  
   
 if __name__ == '__main__':
-    raw_url_file = "anchor_url"
-    predict_res_file = "predict_lottory"
     '''
     train_file = "train.txt"
     #test_file = "cc_100000_feat"
@@ -65,6 +68,7 @@ if __name__ == '__main__':
     test_x = sel.transform(test_x)    
     print train_x.shape
     '''
+    '''
     train_df = pd.read_csv('train.txt', header=0)
     test_df = pd.read_csv('anchor_url_feat', header=0)
     train_num = train_df.shape[0]
@@ -88,8 +92,6 @@ if __name__ == '__main__':
     print test_x.columns
 
 
-    
-
     data_nums, col_nums = test_x.shape
     print data_nums, col_nums
 
@@ -97,8 +99,8 @@ if __name__ == '__main__':
     num_test, num_feat = test_x.shape  
     is_binary_class = (len(np.unique(train_y)) == 2) 
 
-    #test_classifiers = ['NB', 'KNN', 'LR', 'RF', 'DT', 'SVM', 'GBDT'] 
-    test_classifiers = ['KNN', 'LR', 'RF', 'DT', 'SVM', 'GBDT'] 
+    test_classifiers = ['NB', 'KNN', 'LR', 'RF', 'DT', 'SVM', 'GBDT'] 
+    #test_classifiers = ['KNN', 'LR', 'RF', 'DT', 'SVM', 'GBDT'] 
     sum_pos = len(test_classifiers)
     #sum_pos = 7
     predicts = [0] * data_nums
@@ -114,10 +116,91 @@ if __name__ == '__main__':
         model = model_obj.train(classifier, train_x, train_y)
         print 'training took %fs!' % (time.time() - start_time)  
         predict = test_model.predict(model, test_x, test_y, is_binary_class)
+        print Counter(predict)
         predicts = predict + predicts
+        print Counter(predicts)
+    
+    
     #print predicts
     all_pos_index = np.where(predicts >= sum_pos)
     urls = pd.read_table(raw_url_file)
+    urls = urls.ix[all_pos_index]
+    urls.to_csv(predict_res_file)
+
+    '''
+    train_file = "train.txt"
+    test_file = "anchor_url_feat"
+    raw_url_file = "anchor_url"
+    predict_res_file = "predict_lottory"
+
+    is_new = False
+    if is_new == True:
+        print 'new'
+        train_x, train_y, test_x, test_y = feature_analyze.format_data(train_file, test_file)
+    else:
+        print 'load'
+        train_x, train_y, test_x, test_y = data.load_data(train_file + "_ed", test_file + "_ed")
+    #print train_x.columns
+    '''
+    SEED = 0
+    fold_num = 5
+
+    rf = train_model.ModelHelper(clf=RandomForestClassifier, seed=SEED, params=conf.rf_params)
+    et = train_model.ModelHelper(clf=ExtraTreesClassifier, seed=SEED, params=conf.et_params)
+    ada = train_model.ModelHelper(clf=AdaBoostClassifier, seed=SEED, params=conf.ada_params)
+    gb = train_model.ModelHelper(clf=GradientBoostingClassifier, seed=SEED, params=conf.gb_params)
+    svc = train_model.ModelHelper(clf=SVC, seed=SEED, params=conf.svc_params)
+
+    # Create our OOF train and test predictions. These base results will be used as new features
+    rf_oof_train, rf_oof_test = data.get_oof(rf, train_x, train_y, test_x, fold_num, SEED) # Random Forest
+    et_oof_train, et_oof_test = data.get_oof(et,  train_x, train_y, test_x, fold_num, SEED) # Extra Trees
+    ada_oof_train, ada_oof_test = data.get_oof(ada, train_x, train_y, test_x, fold_num, SEED) # AdaBoost 
+    gb_oof_train, gb_oof_test = data.get_oof(gb, train_x, train_y, test_x, fold_num, SEED) # Gradient Boost
+    svc_oof_train, svc_oof_test = data.get_oof(svc, train_x, train_y, test_x, fold_num, SEED) # Support Vector Classifier
+    print("Training is complete")
+    
+    base_predictions_train = pd.DataFrame( {'RandomForest': rf_oof_train.ravel(),
+         'ExtraTrees': et_oof_train.ravel(),
+         'AdaBoost': ada_oof_train.ravel(),
+         'GradientBoost': gb_oof_train.ravel(),
+         'SVC': svc_oof_train.ravel(),
+        })
+    base_predictions_train.head()
+    data.show_features_corr(base_predictions_train)
+    
+    train_x = np.concatenate((rf_oof_train, et_oof_train, ada_oof_train, gb_oof_train, svc_oof_train), axis=1)
+    test_x = np.concatenate((rf_oof_test, et_oof_test, ada_oof_test, gb_oof_test, svc_oof_test), axis=1)
+    predicts = test_x.sum(axis=1)
+    output = open('predict.pkl', 'wb')
+    pickle.dump(predicts, output)
+    output.close()
+    '''
+    input = open('predict.pkl', 'rb')
+    predicts = pickle.load(input)
+    input.close()
+    print Counter(predicts)
+    '''
+    gbm = xgb.XGBClassifier(
+         #learning_rate = 0.02,
+         n_estimators= 2000,
+         max_depth= 4,
+         min_child_weight= 2,
+         #gamma=1,
+         gamma=0.9,                        
+         subsample=0.8,
+         colsample_bytree=0.8,
+         objective= 'binary:logistic',
+         nthread= -1,
+         scale_pos_weight=1).fit(train_x, train_y)
+    predicts = gbm.predict(test_x)
+    '''
+    
+    
+    
+    
+    #print predicts
+    all_pos_index = np.where(predicts >= 5)
+    urls = pd.read_table(raw_url_file, header=None)
     urls = urls.ix[all_pos_index]
     urls.to_csv(predict_res_file)
     

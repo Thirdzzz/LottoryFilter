@@ -18,31 +18,32 @@ from sklearn import preprocessing
 reload(sys)  
 sys.setdefaultencoding('utf8')  
 
-train_df = pd.read_csv('train.txt', header=0)
-test_df = pd.read_csv('anchor_url_feat', header=0)
-train_num = train_df.shape[0]
+def format_data(train_file, test_file):
+    train_df = pd.read_csv(train_file, header=0)
+    test_df = pd.read_csv(test_file, header=0)
+    train_num = train_df.shape[0]
 
-train_y = train_df['class']
-train_x = train_df.drop(['class'], axis=1)
-test_y = test_df['class']
-test_x = test_df.drop(['class'], axis=1)
-all_x = pd.concat([train_x, test_x])
-print all_x.shape
-all_num = all_x.shape[0]
+    train_y = train_df['class']
+    train_x = train_df.drop(['class'], axis=1)
+    test_y = test_df['class']
+    test_x = test_df.drop(['class'], axis=1)
+    all_x = pd.concat([train_x, test_x])
+    all_num = all_x.shape[0]
 
-all_x = data.add_features(all_x)
-all_x = data.scale01(all_x)
-all_x = data.removeFeatByVar(all_x)
-print all_x.shape
-train_x = all_x.iloc[0:train_num, :]
-test_x = all_x.iloc[train_num:all_num, :]
-train_x, test_x = data.selectBestFeat(train_x, train_y, test_x, 100)
+    all_x = data.add_features(all_x)
+    all_x = data.scale01(all_x)
+    all_x = data.removeFeatByVar(all_x)
+    train_x = all_x.iloc[0:train_num, :]
+    test_x = all_x.iloc[train_num:all_num, :]
+    test_x = test_x.reset_index(drop=True)
+    train_x, test_x = data.selectBestFeat(train_x, train_y, test_x, 100)
+    train = pd.concat([train_x, train_y], axis = 1)
+    test = pd.concat([test_x, test_y], axis = 1)
+    train.to_csv(train_file + "_ed", index=False)
+    test.to_csv(test_file + "_ed", index=False)
+    return train_x, train_y, test_x, test_y
 
-train = pd.concat([train_x, train_y], axis = 1)
-test = pd.concat([test_x, test_y], axis = 1)
-train.to_csv('train_finnal.txt')
-test.to_csv('test_finnal.txt')
-
+#train_x, train_y, test_x, test_y = format_data("train.txt", "anchor_url_feat")
 
 '''
 train_x = train_df.drop(['class'], axis=1)

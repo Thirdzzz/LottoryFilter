@@ -17,6 +17,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
+from sklearn.cross_validation import KFold
+from collections import Counter
 
   
 reload(sys)  
@@ -31,6 +33,19 @@ def read_data(data_file):
     #Y = preprocessing.scale(Y)
     #print X, Y
     return X, Y     
+
+def load_data(train_file, test_file):
+    train_df = pd.read_csv(train_file, header=0)
+    test_df = pd.read_csv(test_file, header=0)
+    train_df = train_df.reset_index(drop=True)
+    test_df = test_df.reset_index(drop=True)
+    train_y = train_df['class']
+    train_x = train_df.drop(['class'], axis=1)
+    test_y = test_df['class']
+    test_x = test_df.drop(['class'], axis=1)
+    print train_x.shape, train_y.shape, test_x.shape, test_y.shape
+    return train_x, train_y, test_x, test_y
+    
 
 def scale01(data):
     columns = data.columns.tolist()
@@ -133,21 +148,22 @@ def removeFeatByVar(X):
     #return X
 
 def selectBestFeat(X, Y, test_x, k):
-    #X = SelectKBest(chi2, k=k).fit_transform(X, Y)
-    #rf = RandomForestRegressor(n_estimators=1000, max_depth=20)
-    #rf.fit(X, Y)
-    #X = rf.transform(X)
     rf = RandomForestClassifier(n_estimators=1000, max_depth=10)
     rf.fit(X, Y)
-    draw_feat_importance(X, rf)
+    #rf = LinearSVC(C=0.01, penalty="l1", dual=False).fit(X, Y)
     model = SelectFromModel(rf, prefit=True)
+    
+    draw_feat_importance(X, rf)    
     select_indices = model.get_support(indices=True)
     X = X.iloc[:, select_indices]
-    #X = model.transform(X)
-    X = pd.DataFrame(X)
     test_x = test_x.iloc[:, select_indices]
-    #test_x = model.transform(test_x)
+    '''
+    X = model.transform(X)
+    test_x = model.transform(test_x)
+    '''
+    X = pd.DataFrame(X)
     test_x = pd.DataFrame(test_x)
+    return X, test_x
     '''
     clf = Pipeline([
       ('feature_selection', SelectFromModel(LinearSVC(loss='l2', penalty='l1', dual=False))),
@@ -156,10 +172,11 @@ def selectBestFeat(X, Y, test_x, k):
     clf.fit(X_new, Y)
     X_res = clf.transform(X_new)
     '''
-    print X.shape, test_x.shape
-    return X, test_x
 
 def draw_feat_importance(X, model):
+    import_df = pd.DataFrame([model.feature_importances_], columns=X.columns, index=['feature_importance'])
+    #print import_df
+    pd.melt(import_df).sort_values('value', ascending=False).to_csv('feature_importance/importance.txt')
     plt.figure(figsize=(20,25))
     plt.barh(np.arange(X.columns.shape[0]), model.feature_importances_, 0.5)
     plt.yticks(np.arange(X.columns.shape[0]), X.columns)
@@ -214,6 +231,27 @@ def display_data(data_file, draw_pic=False):
             plt.savefig("feature_images/boxplot_"+column+".png")
             plt.clf()
     
+def get_oof(clf, x_train, y_train, x_test, NFOLDS, SEED):
+    ntrain = x_train.shape[0]
+    ntest = x_test.shape[0]
+    kf = KFold(ntrain, n_folds= NFOLDS, random_state=SEED)
+    oof_train = np.zeros((ntrain,))
+    oof_test = np.zeros((ntest,))
+    oof_test_skf = np.empty((NFOLDS, ntest))
+
+    for i, (train_index, test_index) in enumerate(kf):
+        x_tr = x_train.iloc[train_index]
+        y_tr = y_train.iloc[train_index]
+        x_te = x_train.iloc[test_index]
+
+        clf.train(x_tr, y_tr)
+
+        oof_train[test_index] = clf.predict(x_te)
+        oof_test_skf[i, :] = clf.predict(x_test)
+
+    oof_test[:] = oof_test_skf.mean(axis=0)
+    print Counter(oof_test)
+    return oof_train.reshape(-1, 1), oof_test.reshape(-1, 1)
 
     
 
