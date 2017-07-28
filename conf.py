@@ -1,6 +1,7 @@
 #!usr/bin/env python  
 #-*- coding: utf-8 -*-  
 
+import numpy as np
 
 rf_params = {
     'n_jobs': -1,
@@ -41,5 +42,24 @@ gb_params = {
 # Support Vector Classifier parameters 
 svc_params = {
     'kernel' : 'linear',
-    'C' : 0.025
+    'C' : 2.0
+}
+
+svc_grid_params = [
+    {
+        'kernel': ['rbf'], 
+        'C': np.linspace(1, 3, 3), 
+        'gamma': np.linspace(0.001, 0.01, 3)
+    },
+    {
+        'kernel': ['linear'], 
+        'C': np.linspace(1, 3, 3)
     }
+]
+rf_grid_params = [
+    {
+        'n_estimators':range(1,1000,100),
+        'max_depth': range(1, 100, 10),
+        'max_features': ['None', 'log2', 'sqrt']
+    }
+]

@@ -13,10 +13,12 @@ import xgboost as xgb
 
 from sklearn import preprocessing
 from sklearn import metrics
+from sklearn.metrics import classification_report
 from sklearn.feature_selection import VarianceThreshold, SelectKBest, f_classif, SelectFromModel
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 from sklearn.svm import SVC
 from sklearn.cross_validation import KFold
+from sklearn.model_selection import train_test_split, GridSearchCV
 
 import conf
 import data
@@ -141,6 +143,12 @@ if __name__ == '__main__':
         print 'load'
         train_x, train_y, test_x, test_y = data.load_data(train_file + "_ed", test_file + "_ed")
     #print train_x.columns
+    
+    #svc = SVC()
+    #svc = train_model.optimizeModel(svc, "svc", conf.svc_grid_params, train_x, train_y)
+    rf = RandomForestClassifier()
+    rf = train_model.optimizeModel(rf, "rf", conf.rf_grid_params, train_x, train_y)
+    
     '''
     SEED = 0
     fold_num = 5

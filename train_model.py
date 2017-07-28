@@ -8,6 +8,15 @@ from sklearn import preprocessing
 import numpy as np  
 import pickle 
 import data
+from sklearn.cross_validation import KFold
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.naive_bayes import MultinomialNB  
+from sklearn.neighbors import KNeighborsClassifier  
+from sklearn.linear_model import LogisticRegression  
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn import tree  
+from sklearn.svm import SVC 
+
   
 reload(sys)  
 sys.setdefaultencoding('utf8')  
@@ -19,7 +28,6 @@ class TrainModel(object):
     
     # Multinomial Naive Bayes Classifier  
     def naive_bayes_classifier(self, train_x, train_y):  
-        from sklearn.naive_bayes import MultinomialNB  
         model = MultinomialNB(alpha=0.01)  
         #train_x = data.scale01(train_x)
         model.fit(train_x, train_y)  
@@ -28,7 +36,6 @@ class TrainModel(object):
       
     # KNN Classifier  
     def knn_classifier(self, train_x, train_y):  
-        from sklearn.neighbors import KNeighborsClassifier  
         model = KNeighborsClassifier()  
         #train_x = data.standard(train_x)
         model.fit(train_x, train_y) 
@@ -38,7 +45,6 @@ class TrainModel(object):
       
     # Logistic Regression Classifier  
     def logistic_regression_classifier(self, train_x, train_y):  
-        from sklearn.linear_model import LogisticRegression  
         model = LogisticRegression(penalty='l2')  
         #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
@@ -47,7 +53,6 @@ class TrainModel(object):
       
     # Random Forest Classifier  
     def random_forest_classifier(self, train_x, train_y):  
-        from sklearn.ensemble import RandomForestClassifier  
         model = RandomForestClassifier(n_estimators=8)  
         #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
@@ -56,7 +61,6 @@ class TrainModel(object):
       
     # Decision Tree Classifier  
     def decision_tree_classifier(self, train_x, train_y):  
-        from sklearn import tree  
         model = tree.DecisionTreeClassifier()  
         #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
@@ -64,8 +68,7 @@ class TrainModel(object):
       
       
     # GBDT(Gradient Boosting Decision Tree) Classifier  
-    def gradient_boosting_classifier(self, train_x, train_y):  
-        from sklearn.ensemble import GradientBoostingClassifier  
+    def gradient_boosting_classifier(self, train_x, train_y):   
         model = GradientBoostingClassifier(n_estimators=200) 
         #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
@@ -74,16 +77,13 @@ class TrainModel(object):
       
     # SVM Classifier  
     def svm_classifier(self, train_x, train_y):  
-        from sklearn.svm import SVC  
         model = SVC(kernel='rbf', probability=True)  
         #train_x = data.standard(train_x)
         model.fit(train_x, train_y)  
         return model  
       
     # SVM Classifier using cross validation  
-    def svm_cross_validation(self, train_x, train_y):  
-        from sklearn.grid_search import GridSearchCV  
-        from sklearn.svm import SVC  
+    def svm_cross_validation(self, train_x, train_y):   
         model = SVC(kernel='rbf', probability=True)  
         param_grid = {'C': [1e-3, 1e-2, 1e-1, 1, 10, 100, 1000], 'gamma': [0.001, 0.0001]}  
         grid_search = GridSearchCV(model, param_grid, n_jobs = 1, verbose=1)  
@@ -123,7 +123,47 @@ class ModelHelper(object):
     def feature_importances(self, x, y):
         print(self.clf.fit(x, y).feature_importances_)
 
-
+def optimizeModel(clf, name, tuned_parameters, X_train, y_train):
+    scores = ['recall', 'precision']
+    model = GridSearchCV(clf, tuned_parameters, cv=5, scoring='precision_macro')
+    for score in scores:
+        print("# Tuning hyper-parameters for %s" % score)
+        print()
+    
+        model = GridSearchCV(clf, tuned_parameters, cv=5, scoring='%s_macro' % score)
+        model.fit(X_train, y_train)
+    
+        print("Best parameters set found on development set:")
+        print()
+        print(model.best_params_)
+        print()
+        print("Grid scores on development set:")
+        print()
+        means = model.cv_results_['mean_test_score']
+        stds = model.cv_results_['std_test_score']
+        for mean, std, params in zip(means, stds, model.cv_results_['params']):
+            print("%0.3f (+/-%0.03f) for %r"
+                  % (mean, std * 2, params))
+        print()
+    
+        print("Detailed classification report:")
+        print()
+        print("The model is trained on the full development set.")
+        print("The scores are computed on the full evaluation set.")
+        print()
+        #y_true, y_pred = y_test, clf.predict(X_test)
+        #print(classification_report(y_true, y_pred))
+        #print()
+        print model
+    saveModel(model, name)
+    return model
+    
+def saveModel(clf, name):
+    if not os.path.exist("models"):
+        os.path.makedirs("models")
+    model_save = open('models/' + name + ".pkl", 'wb')
+    pickle.dump(clf, model_save)
+    model_save.close()
       
 if __name__ == '__main__':  
     train_file = "train.txt"
