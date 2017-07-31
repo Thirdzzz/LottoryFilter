@@ -135,21 +135,116 @@ if __name__ == '__main__':
     raw_url_file = "anchor_url"
     predict_res_file = "predict_lottory"
 
+    train_x, train_y, test_x, test_y = data.load_data(train_file + "_ed", test_file + "_ed")
     is_new = False
     if is_new == True:
         print 'new'
         train_x, train_y, test_x, test_y = feature_analyze.format_data(train_file, test_file)
     else:
         print 'load'
-        train_x, train_y, test_x, test_y = data.load_data(train_file + "_ed", test_file + "_ed")
+        
     #print train_x.columns
     
-    #svc = SVC()
-    #svc = train_model.optimizeModel(svc, "svc", conf.svc_grid_params, train_x, train_y)
-    rf = RandomForestClassifier()
-    rf = train_model.optimizeModel(rf, "rf", conf.rf_grid_params, train_x, train_y)
+    #svc = SVC(C=2.0, kernel='linear')
+    #train_model.saveModel(svc, 'svc')
+    #sys.exit(0)
+    rf = train_model.loadModel('rf')
+    et = train_model.loadModel('et')
+    ada = train_model.loadModel('ada')
+    gb = train_model.loadModel('gb')
+    svc = train_model.loadModel('svc')
+    
+    model_new = True
+    if model_new:
+        '''
+        rf = RandomForestClassifier()
+        rf = train_model.optimizeModel(rf, "rf", conf.rf_grid_params, train_x, train_y)
+        et = ExtraTreesClassifier()
+        et = train_model.optimizeModel(et, "et", conf.et_grid_params, train_x, train_y)
+        ada = AdaBoostClassifier()
+        ada = train_model.optimizeModel(ada, "ada", conf.ada_grid_params, train_x, train_y)
+        gb = GradientBoostingClassifier()
+        gb = train_model.optimizeModel(gb, "gb", conf.gb_grid_params, train_x, train_y)
+        svc = SVC()
+        svc = train_model.optimizeModel(svc, "svc", conf.svc_grid_params, train_x, train_y)
+        '''
+        SEED = 0
+        fold_num = 5
+        
+        #rf_oof_train, rf_oof_test = data.get_oof(rf, train_x, train_y, test_x, fold_num, SEED, 'rf') # Random Forest
+        et_oof_train, et_oof_test = data.get_oof(et,  train_x, train_y, test_x, fold_num, SEED, 'et') # Extra Trees
+        #ada_oof_train, ada_oof_test = data.get_oof(ada, train_x, train_y, test_x, fold_num, SEED, 'ada') # AdaBoost 
+        #gb_oof_train, gb_oof_test = data.get_oof(gb, train_x, train_y, test_x, fold_num, SEED, 'gb') # Gradient Boost
+        #svc_oof_train, svc_oof_test = data.get_oof(svc, train_x, train_y, test_x, fold_num, SEED, 'svc') # Support Vector Classifier
+        print("Training is complete")
+
+        base_predictions_train = pd.DataFrame( {'RandomForest': rf_oof_train.ravel(),
+                 'ExtraTrees': et_oof_train.ravel(),
+                 'AdaBoost': ada_oof_train.ravel(),
+                 'GradientBoost': gb_oof_train.ravel(),
+                 'SVC': svc_oof_train.ravel(),
+                })
+        base_predictions_train.head()
+        data.show_features_corr(base_predictions_train)
+        
+        train_x = np.concatenate((rf_oof_train, et_oof_train, ada_oof_train, gb_oof_train, svc_oof_train), axis=1)
+        test_x = np.concatenate((rf_oof_test, et_oof_test, ada_oof_test, gb_oof_test, svc_oof_test), axis=1)
+        level_one_output = open("level_one_output.pkl", 'wb')
+        output_list = [train_x, test_x]
+        pickle.dump(output_list, level_one_output)
+        level_one_output.close()
+    else:
+        print 'load model'
+        level_one_input = open("level_one_output.pkl", 'r')
+        level_output_list = pickle.load(level_one_input)
+        train_x = level_output_list[0]
+        test_x = level_output_list[1]
+        print 'load  level one output'
+        
+        
+    xg = xgb.XGBClassifier(
+                 #learning_rate = 0.02,
+                 n_estimators= 2000,
+                 max_depth= 4,
+                 min_child_weight= 2,
+                 #gamma=1,
+                 gamma=0.9,                        
+                 subsample=0.8,
+                 colsample_bytree=0.8,
+                 objective= 'binary:logistic',
+                 nthread= -1,
+                 scale_pos_weight=1)
+    xg_new = True
+    if xg_new:
+        xg = train_model.optimizeModel(xg, "xg", conf.xg_grid_params, train_x, train_y)
+    else:
+        print 'load XGBoost'
+        xg = train_model.loadModel('xg')
+        
+    
+    predict_new = True
+    if predict_new:
+        predicts = gbm.predict(test_x)
+        output = open('predict.pkl', 'wb')
+        pickle.dump(predicts, output)
+        output.close()        
+    else:
+        input = open('predict.pkl', 'rb')
+        predicts = pickle.load(input)
+        input.close()
+        print Counter(predicts)
+        
+    #print predicts
+    all_pos_index = np.where(predicts >= 5)
+    urls = pd.read_table(raw_url_file, header=None)
+    urls = urls.ix[all_pos_index]
+    urls.to_csv(predict_res_file)
+    
+
     
     '''
+    
+    
     SEED = 0
     fold_num = 5
 
@@ -178,15 +273,32 @@ if __name__ == '__main__':
     
     train_x = np.concatenate((rf_oof_train, et_oof_train, ada_oof_train, gb_oof_train, svc_oof_train), axis=1)
     test_x = np.concatenate((rf_oof_test, et_oof_test, ada_oof_test, gb_oof_test, svc_oof_test), axis=1)
+    
+    xg_new = True
+    if xg_new:
+        xg = xgb.XGBClassifier(
+                 #learning_rate = 0.02,
+                 n_estimators= 2000,
+                 max_depth= 4,
+                 min_child_weight= 2,
+                 #gamma=1,
+                 gamma=0.9,                        
+                 subsample=0.8,
+                 colsample_bytree=0.8,
+                 objective= 'binary:logistic',
+                 nthread= -1,
+                 scale_pos_weight=1)
+        xg = train_model.optimizeModel(xg, "xg", conf.xg_grid_params, train_x, train_y)
+    else:
+        xg = train_model.loadModel('xg')
+    predicts = gbm.predict(test_x)
+    
     predicts = test_x.sum(axis=1)
     output = open('predict.pkl', 'wb')
     pickle.dump(predicts, output)
     output.close()
     '''
-    input = open('predict.pkl', 'rb')
-    predicts = pickle.load(input)
-    input.close()
-    print Counter(predicts)
+    
     '''
     gbm = xgb.XGBClassifier(
          #learning_rate = 0.02,
@@ -206,11 +318,7 @@ if __name__ == '__main__':
     
     
     
-    #print predicts
-    all_pos_index = np.where(predicts >= 5)
-    urls = pd.read_table(raw_url_file, header=None)
-    urls = urls.ix[all_pos_index]
-    urls.to_csv(predict_res_file)
+
     
     
 

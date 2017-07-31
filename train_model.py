@@ -124,7 +124,8 @@ class ModelHelper(object):
         print(self.clf.fit(x, y).feature_importances_)
 
 def optimizeModel(clf, name, tuned_parameters, X_train, y_train):
-    scores = ['recall', 'precision']
+    #scores = ['recall', 'precision']
+    scores = ['precision']
     model = GridSearchCV(clf, tuned_parameters, cv=5, scoring='precision_macro')
     for score in scores:
         print("# Tuning hyper-parameters for %s" % score)
@@ -159,11 +160,18 @@ def optimizeModel(clf, name, tuned_parameters, X_train, y_train):
     return model
     
 def saveModel(clf, name):
-    if not os.path.exist("models"):
-        os.path.makedirs("models")
+    if not os.path.exists("models"):
+        os.makedirs("models")
     model_save = open('models/' + name + ".pkl", 'wb')
     pickle.dump(clf, model_save)
     model_save.close()
+
+def loadModel(name):
+    model_reader = open('models/' + name + ".pkl", 'r')
+    model = pickle.load(model_reader)
+    model_reader.close()
+    print name, model.get_params()
+    return model
       
 if __name__ == '__main__':  
     train_file = "train.txt"

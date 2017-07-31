@@ -231,7 +231,7 @@ def display_data(data_file, draw_pic=False):
             plt.savefig("feature_images/boxplot_"+column+".png")
             plt.clf()
     
-def get_oof(clf, x_train, y_train, x_test, NFOLDS, SEED):
+def get_oof(clf, x_train, y_train, x_test, NFOLDS, SEED, name):
     ntrain = x_train.shape[0]
     ntest = x_test.shape[0]
     kf = KFold(ntrain, n_folds= NFOLDS, random_state=SEED)
@@ -244,13 +244,15 @@ def get_oof(clf, x_train, y_train, x_test, NFOLDS, SEED):
         y_tr = y_train.iloc[train_index]
         x_te = x_train.iloc[test_index]
 
-        clf.train(x_tr, y_tr)
+        #clf.train(x_tr, y_tr)
+        clf.fit(x_tr, y_tr)
 
         oof_train[test_index] = clf.predict(x_te)
         oof_test_skf[i, :] = clf.predict(x_test)
+        print name, i
 
     oof_test[:] = oof_test_skf.mean(axis=0)
-    print Counter(oof_test)
+    print name, Counter(oof_test)
     return oof_train.reshape(-1, 1), oof_test.reshape(-1, 1)
 
     
