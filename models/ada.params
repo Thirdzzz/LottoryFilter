@@ -1,0 +1,16 @@
+(dp0
+S'n_estimators'
+p1
+I20
+sS'base_estimator'
+p2
+NsS'random_state'
+p3
+NsS'learning_rate'
+p4
+F0.6
+sS'algorithm'
+p5
+S'SAMME.R'
+p6
+s.

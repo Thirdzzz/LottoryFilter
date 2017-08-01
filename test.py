@@ -144,19 +144,32 @@ if __name__ == '__main__':
         print 'load'
         
     #print train_x.columns
-    
-    #svc = SVC(C=2.0, kernel='linear')
-    #train_model.saveModel(svc, 'svc')
+    '''
+    rf = RandomForestClassifier(n_estimators= 100,max_depth= 8,max_features = 'auto')
+    train_model.saveModel(rf, 'rf')
+    et = ExtraTreesClassifier(n_estimators=400,max_features= 'log2',max_depth= 8)
+    train_model.saveModel(et, 'et')
+    ada = AdaBoostClassifier(n_estimators= 20,learning_rate= 0.6)
+    train_model.saveModel(ada, 'ada')
+    gb = GradientBoostingClassifier(max_features='log2',max_depth= 9,learning_rate= 0.15)
+    train_model.saveModel(gb, 'gb')
+    svc = SVC(C=2.0, kernel='linear')
+    train_model.saveModel(svc, 'svc')
+    print 'save complete'
+    '''
     #sys.exit(0)
-    rf = train_model.loadModel('rf')
-    et = train_model.loadModel('et')
-    ada = train_model.loadModel('ada')
-    gb = train_model.loadModel('gb')
-    svc = train_model.loadModel('svc')
+    SEED = 0
+    fold_num = 5
+
+    rf = train_model.ModelHelper(clf=RandomForestClassifier, seed=SEED, params=train_model.loadParams('rf'))
+    et = train_model.ModelHelper(clf=ExtraTreesClassifier, seed=SEED, params=train_model.loadParams('et'))
+    ada = train_model.ModelHelper(clf=AdaBoostClassifier, seed=SEED, params=train_model.loadParams('ada'))
+    gb = train_model.ModelHelper(clf=GradientBoostingClassifier, seed=SEED, params=train_model.loadParams('gb'))
+    svc = train_model.ModelHelper(clf=SVC, seed=SEED, params=train_model.loadParams('svc'))
+
     
-    model_new = True
+    model_new = False
     if model_new:
-        '''
         rf = RandomForestClassifier()
         rf = train_model.optimizeModel(rf, "rf", conf.rf_grid_params, train_x, train_y)
         et = ExtraTreesClassifier()
@@ -167,15 +180,12 @@ if __name__ == '__main__':
         gb = train_model.optimizeModel(gb, "gb", conf.gb_grid_params, train_x, train_y)
         svc = SVC()
         svc = train_model.optimizeModel(svc, "svc", conf.svc_grid_params, train_x, train_y)
-        '''
-        SEED = 0
-        fold_num = 5
-        
-        #rf_oof_train, rf_oof_test = data.get_oof(rf, train_x, train_y, test_x, fold_num, SEED, 'rf') # Random Forest
+
+        rf_oof_train, rf_oof_test = data.get_oof(rf, train_x, train_y, test_x, fold_num, SEED, 'rf') # Random Forest
         et_oof_train, et_oof_test = data.get_oof(et,  train_x, train_y, test_x, fold_num, SEED, 'et') # Extra Trees
-        #ada_oof_train, ada_oof_test = data.get_oof(ada, train_x, train_y, test_x, fold_num, SEED, 'ada') # AdaBoost 
-        #gb_oof_train, gb_oof_test = data.get_oof(gb, train_x, train_y, test_x, fold_num, SEED, 'gb') # Gradient Boost
-        #svc_oof_train, svc_oof_test = data.get_oof(svc, train_x, train_y, test_x, fold_num, SEED, 'svc') # Support Vector Classifier
+        ada_oof_train, ada_oof_test = data.get_oof(ada, train_x, train_y, test_x, fold_num, SEED, 'ada') # AdaBoost 
+        gb_oof_train, gb_oof_test = data.get_oof(gb, train_x, train_y, test_x, fold_num, SEED, 'gb') # Gradient Boost
+        svc_oof_train, svc_oof_test = data.get_oof(svc, train_x, train_y, test_x, fold_num, SEED, 'svc') # Support Vector Classifier
         print("Training is complete")
 
         base_predictions_train = pd.DataFrame( {'RandomForest': rf_oof_train.ravel(),
@@ -212,19 +222,18 @@ if __name__ == '__main__':
                  subsample=0.8,
                  colsample_bytree=0.8,
                  objective= 'binary:logistic',
-                 nthread= -1,
+                 #nthread= -1,
                  scale_pos_weight=1)
-    xg_new = True
+    xg_new = False
     if xg_new:
         xg = train_model.optimizeModel(xg, "xg", conf.xg_grid_params, train_x, train_y)
-    else:
-        print 'load XGBoost'
-        xg = train_model.loadModel('xg')
+    xg = train_model.ModelHelper(clf=xgb.XGBClassifier, seed=SEED, params=train_model.loadParams('xg')).fit(train_x, train_y)
         
     
     predict_new = True
+    predicts = []
     if predict_new:
-        predicts = gbm.predict(test_x)
+        predicts = xg.predict(test_x)
         output = open('predict.pkl', 'wb')
         pickle.dump(predicts, output)
         output.close()        
@@ -234,8 +243,8 @@ if __name__ == '__main__':
         input.close()
         print Counter(predicts)
         
-    #print predicts
-    all_pos_index = np.where(predicts >= 5)
+    print predicts
+    all_pos_index = np.where(predicts >= 1)
     urls = pd.read_table(raw_url_file, header=None)
     urls = urls.ix[all_pos_index]
     urls.to_csv(predict_res_file)

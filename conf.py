@@ -11,27 +11,23 @@ rf_params = {
 
 # Extra Trees Parameters
 et_params = {
-    'n_jobs': -1,
-    'n_estimators':500,
-    #'max_features': 0.5,
+    'n_estimators':400,
+    'max_features': 'log2',
     'max_depth': 8,
-    'min_samples_leaf': 2,
-    'verbose': 0
 }
 
 # AdaBoost parameters
 ada_params = {
-    'n_estimators': 500,
-    'learning_rate' : 0.75
+    'n_estimators': 20,
+    'learning_rate' : 0.6
 }
 
 # Gradient Boosting parameters
 gb_params = {
-    'n_estimators': 500,
-     #'max_features': 0.2,
-    'max_depth': 5,
-    'min_samples_leaf': 2,
-    'verbose': 0
+    #'n_estimators': 500,
+    'max_features': 'log2',
+    'max_depth': 9,
+    'learning_rate': 0.15,
 }
 
 # Support Vector Classifier parameters 
@@ -40,6 +36,14 @@ svc_params = {
     'C' : 2.0
 }
 
+xg_params = {
+    'colsample_bytree': 0.8, 
+    'learning_rate': 0.29999999999999999, 
+    'min_child_weight': 2, 
+    'objective': 'binary:logistic', 
+    'max_depth': 3, 
+    'gamma': 0.10000000000000001
+}
 rf_grid_params = [
     {
         'n_estimators':[50, 100, 300],

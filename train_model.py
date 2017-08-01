@@ -155,23 +155,22 @@ def optimizeModel(clf, name, tuned_parameters, X_train, y_train):
         #y_true, y_pred = y_test, clf.predict(X_test)
         #print(classification_report(y_true, y_pred))
         #print()
-        print model
-    saveModel(model, name)
+    saveParams(model, name)
     return model
     
-def saveModel(clf, name):
+def saveParams(clf, name):
     if not os.path.exists("models"):
         os.makedirs("models")
-    model_save = open('models/' + name + ".pkl", 'wb')
-    pickle.dump(clf, model_save)
+    model_save = open('models/' + name + ".params", 'wb')
+    pickle.dump(clf.best_params_, model_save)
     model_save.close()
 
-def loadModel(name):
-    model_reader = open('models/' + name + ".pkl", 'r')
-    model = pickle.load(model_reader)
+def loadParams(name):
+    model_reader = open('models/' + name + ".params", 'r')
+    params = pickle.load(model_reader)
     model_reader.close()
-    print name, model.get_params()
-    return model
+    print name, params
+    return params
       
 if __name__ == '__main__':  
     train_file = "train.txt"
