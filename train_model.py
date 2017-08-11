@@ -159,6 +159,7 @@ def optimizeModel(clf, name, tuned_parameters, X_train, y_train):
     return model
     
 def saveParams(clf, name):
+    print 'save model: ', name
     if not os.path.exists("models"):
         os.makedirs("models")
     model_save = open('models/' + name + ".params", 'wb')
@@ -166,6 +167,7 @@ def saveParams(clf, name):
     model_save.close()
 
 def loadParams(name):
+    print 'load model: ', name
     model_reader = open('models/' + name + ".params", 'r')
     params = pickle.load(model_reader)
     model_reader.close()
