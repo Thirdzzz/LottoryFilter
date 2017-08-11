@@ -21,8 +21,8 @@ from sklearn.cross_validation import KFold
 from collections import Counter
 
   
-reload(sys)  
-sys.setdefaultencoding('utf8')  
+#reload(sys)  
+#sys.setdefaultencoding('utf8')  
   
 def read_data(data_file):  
     data = np.loadtxt(data_file, delimiter=",")
