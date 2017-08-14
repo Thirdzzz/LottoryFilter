@@ -48,7 +48,7 @@ if __name__ == '__main__':
     predict_res_file = "predict_hub"
     
     print 'bro?'
-    is_new = True
+    is_new = False
     if is_new == True:
         print 'new'
         train_x, train_y, test_x, test_y = feature_analyze.format_data(train_file, test_file)
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     svc = train_model.ModelHelper(clf=SVC, seed=SEED, params=train_model.loadParams('svc'))
 
     
-    model_new = True
+    model_new = False
     if model_new:
         rf = RandomForestClassifier()
         rf = train_model.optimizeModel(rf, "rf", conf.rf_grid_params, train_x, train_y)
